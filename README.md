@@ -1,27 +1,21 @@
-# 🚦 ECR - E-Challan Recognition System
+# ECR - E-Challan Recognition System
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![React](https://img.shields.io/badge/Frontend-React-61dafb.svg)
-![Node](https://img.shields.io/badge/Backend-Node.js-339933.svg)
-![Python](https://img.shields.io/badge/ML%20Service-Python-3776ab.svg)
-![MongoDB](https://img.shields.io/badge/Database-MongoDB-47a248.svg)
-
-A comprehensive, AI-powered traffic violation management system that uses Automatic Number Plate Recognition (ANPR) to detect vehicle document expirations and issue e-challans automatically.
+A comprehensive traffic violation management system that uses Automatic Number Plate Recognition (ANPR) to detect vehicle document expirations and issue e-challans automatically.
 
 ---
 
-## 🌟 Key Features
+### Key Features
 
--   **🔍 AI-Powered Scanning**: Real-time number plate detection using YOLOv8 models.
--   **📹 Video Analysis**: Process dashboard camera feeds or uploaded videos for automatic violation detection.
--   **📄 Document Verification**: Real-time checking of RC, Insurance, PUC, and Fitness data against a central dataset.
--   **📧 Automated Notifications**: Instant e-challan delivery to vehicle owners via Gmail SMTP with PDF evidence.
--   **💳 Payment Gateway**: Mock payment simulation for citizens to pay their fines online.
--   **📊 Admin Dashboard**: Comprehensive management interface for traffic officials with live monitoring and statistics.
+-   **AI-Powered Scanning**: Real-time number plate detection using YOLOv8 models.
+-   **Video Analysis**: Process dashboard camera feeds or uploaded videos for automatic violation detection.
+-   **Document Verification**: Real-time checking of RC, Insurance, PUC, and Fitness data against a central dataset.
+-   **Automated Notifications**: Instant e-challan delivery to vehicle owners via Gmail SMTP with PDF evidence.
+-   **Payment Gateway**: Mock payment simulation for citizens to pay their fines online.
+-   **Admin Dashboard**: Comprehensive management interface for traffic officials with live monitoring and statistics.
 
 ---
 
-## 🏗️ Architecture Overview
+### Architecture Overview
 
 The system consists of three primary components:
 
@@ -31,7 +25,7 @@ The system consists of three primary components:
 
 ---
 
-## 🛠️ Tech Stack
+### Tech Stack
 
 -   **Frontend**: React.js, Tailwind CSS, Framer Motion
 -   **Backend**: Node.js, Express, Mongoose, Firebase Admin
@@ -40,20 +34,20 @@ The system consists of three primary components:
 
 ---
 
-## 🚀 Getting Started
+### Getting Started
 
-### 📋 Prerequisites
+#### Prerequisites
 
 -   **Node.js** (v16+)
 -   **Python** (3.9+)
 -   **MongoDB Community Server** (Running locally on port 27017)
 
-### 🔧 Installation
+#### Installation
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/your-username/ECR-System.git
-    cd ECR-System
+    git clone https://github.com/himanshupandey04/Real-Time-Doc-Validator-Instant-E-Challan-Relay.git
+    cd Real-Time-Doc-Validator-Instant-E-Challan-Relay
     ```
 
 2.  **Install All Dependencies**:
@@ -72,9 +66,9 @@ The system consists of three primary components:
     -   Configure `backend/.env` with your MongoDB URI and JWT secrets.
     -   Configure `ml_service/app/.env` with your Gmail SMTP credentials for automated emails.
 
-### 🏃 Running the Application
+#### Running the Application
 
-You can start the entire stack (Frontend, Backend, and ML Service) with a single command from the root directory:
+Start the entire stack (Frontend, Backend, and ML Service) from the root directory:
 
 ```bash
 npm run dev
@@ -86,7 +80,7 @@ npm run dev
 
 ---
 
-## 📁 Project Structure
+### Project Structure
 
 ```
 ECR/
@@ -97,12 +91,12 @@ ECR/
 ├── public/             # Static assets
 ├── docs/               # Detailed documentation & setup guides
 ├── LICENSE             # MIT License
-└── README.md           # You are here
+└── README.md           # Documentation
 ```
 
 ---
 
-## 🛡️ Security & Privacy
+### Security & Privacy
 
 -   **Credential Management**: All API keys and SMTP passwords are managed via environment variables and ignored by Git.
 -   **Auth**: Role-based access control (RBAC) ensuring only officials can access scanning tools.
@@ -110,14 +104,10 @@ ECR/
 
 ---
 
-## 🤝 Contributing
+### Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+### License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-**Built with ❤️ for Smarter Traffic Management**
+This project is licensed under the MIT License - see the LICENSE file for details.
