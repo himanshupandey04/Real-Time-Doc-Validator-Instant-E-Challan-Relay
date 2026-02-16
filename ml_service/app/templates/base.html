@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ANPR E-Challan System{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- ECR Design System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecr-design-system.css') }}">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-shield-alt"></i>
+            <span>E-Challan</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}"
+                class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('live_monitor') }}"
+                class="nav-item {% if request.endpoint == 'live_monitor' %}active{% endif %}">
+                <i class="fas fa-video"></i>
+                <span>Live Monitor</span>
+            </a>
+            <a href="{{ url_for('scan_vehicle') }}"
+                class="nav-item {% if request.endpoint == 'scan_vehicle' %}active{% endif %}">
+                <i class="fas fa-camera"></i>
+                <span>Scan Vehicle</span>
+            </a>
+            <a href="{{ url_for('generate_challan') }}"
+                class="nav-item {% if request.endpoint == 'generate_challan' %}active{% endif %}">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Generate Challan</span>
+            </a>
+            <a href="{{ url_for('verify_documents') }}"
+                class="nav-item {% if request.endpoint == 'verify_documents' %}active{% endif %}">
+                <i class="fas fa-check-circle"></i>
+                <span>Verify Documents</span>
+            </a>
+            <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint == 'history' %}active{% endif %}">
+                <i class="fas fa-history"></i>
+                <span>History</span>
+            </a>
+            <a href="{{ url_for('violation_map') }}"
+                class="nav-item {% if request.endpoint == 'violation_map' %}active{% endif %}">
+                <i class="fas fa-map-marked-alt"></i>
+                <span>Map View</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="nav-item {% if request.endpoint == 'profile' %}active{% endif %}">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    {% if current_user.profile_pic %}
+                    <img src="{{ url_for('static', filename=current_user.profile_pic) }}" alt="{{ current_user.name }}">
+                    {% else %}
+                    <div class="avatar-placeholder">{{ current_user.name[0] }}</div>
+                    {% endif %}
+                </div>
+                <div class="user-details">
+                    <div class="user-name">{{ current_user.name }}</div>
+                    <div class="user-role">{{ current_user.role|title }}</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <button id="sidebar-toggle" class="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <div class="header-right">
+                <div class="header-date">
+                    <i class="far fa-calendar"></i>
+                    <span>{{ datetime.datetime.now().strftime('%d %B, %Y') }}</span>
+                </div>
+                <div class="header-time" id="current-time"></div>
+            </div>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} animate-fade-in-up">
+                <i
+                    class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button class="alert-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        <div class="page-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <!-- Fallback if CDN fails -->
+    <script>
+        if (typeof io === 'undefined') {
+            document.write('<script src="/socket.io/socket.io.js"><\/script>');
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <script>
+        // Sidebar Toggle
+        document.getElementById('sidebar-toggle').addEventListener('click', function () {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.getElementById('main-content').classList.toggle('expanded');
+        });
+
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.innerHTML = '<i class="far fa-clock"></i> ' + timeString;
+            }
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

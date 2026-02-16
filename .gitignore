@@ -1,0 +1,45 @@
+# ECR - E-Challan Recognition System Git Ignore
+
+# Node.js dependencies
+node_modules/
+package-lock.json
+
+# Build files
+build/
+dist/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python environment & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+/.env
+
+# ML Service Specific
+ml_service/app/static/uploads/*
+!ml_service/app/static/uploads/.gitkeep
+ml_service/archive/
+ml_service/app/.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Specific
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large Datasets (Keep the sample CSV if it's small, otherwise ignore)
+# ml_service/app/indian_vehicle_dataset.csv
+ml_service/app/indian_vehicle_dataset_non_ev.xlsx

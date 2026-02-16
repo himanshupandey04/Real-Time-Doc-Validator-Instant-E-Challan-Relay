@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800 fw-bold">E-Challan Details</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Challan Info -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Challan: {{ challan.challan_id }}</h6>
+                {% if challan.status == 'Paid' %}
+                <span class="badge bg-success fs-6">Paid</span>
+                {% elif challan.status == 'Pending' %}
+                <span class="badge bg-warning text-dark fs-6">Pending</span>
+                {% else %}
+                <span class="badge bg-danger fs-6">Unpaid</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Vehicle Number</p>
+                        <h4 class="fw-bold font-monospace">{{ challan.plate_number }}</h4>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Owner Name</p>
+                        <h5 class="fw-bold">{{ challan.owner_name or 'N/A' }}</h5>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Violation Type:</strong><br>
+                        <span class="text-danger fw-bold">{{ challan.violation_type }}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Fine Amount:</strong><br>
+                        <span class="text-danger fw-bold fs-4">{{ challan.fine_amount | currency }}</span></p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Date & Time:</strong><br>{{ challan.issue_timestamp }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Issued By:</strong><br>{{ challan.official_name }} ({{ challan.official_id }})</p>
+                    </div>
+                </div>
+
+                {% if challan.vehicle_info %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Vehicle:</strong><br>{{ challan.vehicle_info }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Location:</strong><br>{{ challan.location or 'ANPR Camera Zone' }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Vehicle Details from Dataset -->
+                {% if vehicle %}
+                <hr>
+                <h5 class="fw-bold text-gray-800 mb-3"><i class="fas fa-car me-2"></i>Vehicle Details (RTO Database)</h5>
+                <div class="row">
+                    <div class="col-md-4 mb-2"><span class="text-muted small">Make & Model</span><br><strong>{{ vehicle.make }} {{ vehicle.model }}</strong></div>
+                    <div class="col-md-4 mb-2"><span class="text-muted small">Vehicle Class</span><br>{{ vehicle.vehicle_type }}</div>
+                    <div class="col-md-4 mb-2"><span class="text-muted small">Fuel</span><br>{{ vehicle.fuel_type }}</div>
+                    <div class="col-md-4 mb-2"><span class="text-muted small">Color</span><br>{{ vehicle.color }}</div>
+                    <div class="col-md-4 mb-2"><span class="text-muted small">Year</span><br>{{ vehicle.manufacturing_year }}</div>
+                    <div class="col-md-4 mb-2"><span class="text-muted small">RTO</span><br>{{ vehicle.rto_code }} ({{ vehicle.state_code }})</div>
+                </div>
+
+                <hr>
+                <h6 class="fw-bold text-gray-800 mb-3"><i class="fas fa-file-alt me-2"></i>Document Status</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr><th>Document</th><th>Expiry</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            {% set docs = [
+                                ('Fitness/Registration', vehicle.fitness_expiry, vehicle.status_report.reg_expiry),
+                                ('Insurance (' ~ vehicle.insurer ~ ')', vehicle.insurance_expiry, vehicle.status_report.insurance_expiry),
+                                ('PUC Certificate', vehicle.puc_expiry, vehicle.status_report.puc_expiry)
+                            ] %}
+                            {% for name, expiry, status in docs %}
+                            <tr class="{{ 'table-danger' if status == 'Expired' else '' }}">
+                                <td class="fw-bold">{{ name }}</td>
+                                <td>{{ expiry }}</td>
+                                <td><span class="badge bg-{{ 'danger' if status == 'Expired' else 'success' }} rounded-pill">{{ status }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h6 class="fw-bold text-gray-800 mb-3"><i class="fas fa-user me-2"></i>Owner Details</h6>
+                <div class="row">
+                    <div class="col-md-6 mb-2"><span class="text-muted small">Name</span><br><strong>{{ vehicle.owner_name }}</strong></div>
+                    <div class="col-md-6 mb-2"><span class="text-muted small">DOB</span><br>{{ vehicle.owner_dob }}</div>
+                    <div class="col-12 mb-2"><span class="text-muted small">Address</span><br>{{ vehicle.owner_address }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Evidence -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Evidence</h6>
+            </div>
+            <div class="card-body text-center">
+                {% if challan.proof_image_path %}
+                <img src="{{ challan.proof_image_path }}" class="img-fluid rounded border" alt="Proof">
+                {% else %}
+                <div class="py-5 bg-light rounded border text-muted">
+                    <i class="fas fa-image fa-3x mb-3"></i>
+                    <p>No Image Available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Actions</h6>
+            </div>
+            <div class="card-body">
+                <button onclick="window.print()" class="btn btn-success w-100 mb-2">
+                    <i class="fas fa-print me-2"></i> Print Challan
+                </button>
+                {% if challan.status != 'Paid' %}
+                <form action="{{ url_for('pay_challan', id=challan.id) }}" method="POST">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-credit-card me-2"></i> Mark as Paid
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{{ url_for('history') }}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-list me-2"></i> View All Challans
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800 fw-bold"><i class="fas fa-check-circle me-2"></i>Verify Vehicle Documents</h1>
+
+<div class="card card-custom mb-4">
+    <div class="card-body">
+        <div class="input-group mb-3" style="max-width: 500px;">
+            <input type="text" class="form-control form-control-lg text-uppercase font-monospace"
+                placeholder="Enter Registration Number (e.g. MH04CT0311)" id="v-plate"
+                value="{{ prefill_plate }}" onkeypress="if(event.key==='Enter') checkDocs()">
+            <button class="btn btn-primary btn-lg fw-bold" onclick="checkDocs()">
+                <i class="fas fa-search me-2"></i>Verify
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="v-loader" class="text-center d-none py-4">
+    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+    <p class="mt-2 text-muted fw-bold">Looking up vehicle...</p>
+</div>
+
+<div id="v-results" class="d-none">
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card card-custom h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-car me-2"></i>Vehicle Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-2"><span class="text-muted small">Registration No.</span><br><strong id="vd-plate" class="font-monospace fs-5"></strong></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">RC Status</span><br><span id="vd-rc-status" class="badge fs-6"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Owner Name</span><br><strong id="vd-owner"></strong></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">DOB</span><br><span id="vd-dob"></span></div>
+                        <div class="col-12 mb-2"><span class="text-muted small">Address</span><br><span id="vd-address"></span></div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6 mb-2"><span class="text-muted small">Make</span><br><strong id="vd-make"></strong></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Model</span><br><strong id="vd-model"></strong></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Vehicle Class</span><br><span id="vd-class"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Fuel Type</span><br><span id="vd-fuel"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Color</span><br><span id="vd-color"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Mfg. Year</span><br><span id="vd-year"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Engine CC</span><br><span id="vd-engine"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Emission Norm</span><br><span id="vd-emission"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">RTO Code</span><br><span id="vd-rto"></span></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Reg. Date</span><br><span id="vd-regdate"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card card-custom mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-file-alt me-2"></i>Document Verification Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr><th>Document</th><th>Issuing Date</th><th>Expiry Date</th><th>Status</th></tr>
+                            </thead>
+                            <tbody id="v-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="violation-alert" class="card border-danger d-none mb-4" style="border-left: 4px solid #e74a3b;">
+                <div class="card-body">
+                    <h5 class="fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Violations Detected</h5>
+                    <ul id="v-violations" class="mb-3"></ul>
+                    <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded mb-3">
+                        <span class="fw-bold">Total Penalty:</span>
+                        <span class="h4 text-danger fw-bold mb-0" id="v-total-fine"></span>
+                    </div>
+                    <a id="gen-challan-link" href="#" class="btn btn-danger fw-bold w-100">
+                        <i class="fas fa-file-invoice-dollar me-2"></i> Generate E-Challan for Violations
+                    </a>
+                </div>
+            </div>
+
+            <div id="all-clear-alert" class="card border-success d-none mb-4" style="border-left: 4px solid #1cc88a;">
+                <div class="card-body text-center py-4">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5 class="fw-bold text-success">All Documents Valid</h5>
+                    <p class="text-muted mb-0">No violations found. Vehicle is compliant.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="v-not-found" class="d-none">
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        Vehicle not found in database. Please check the registration number and try again.
+    </div>
+</div>
+
+<script>
+    function checkDocs() {
+        const p = document.getElementById('v-plate').value.trim().toUpperCase();
+        if (!p) return;
+
+        document.getElementById('v-results').classList.add('d-none');
+        document.getElementById('v-not-found').classList.add('d-none');
+        document.getElementById('v-loader').classList.remove('d-none');
+
+        fetch('/api/vehicle/' + encodeURIComponent(p))
+            .then(r => r.json())
+            .then(res => {
+                document.getElementById('v-loader').classList.add('d-none');
+                if (res.found) {
+                    const d = res.data;
+                    document.getElementById('vd-plate').textContent = d.plate_number;
+                    document.getElementById('vd-owner').textContent = d.owner_name;
+                    document.getElementById('vd-dob').textContent = d.owner_dob;
+                    document.getElementById('vd-address').textContent = d.owner_address;
+                    document.getElementById('vd-make').textContent = d.make;
+                    document.getElementById('vd-model').textContent = d.model;
+                    document.getElementById('vd-class').textContent = d.vehicle_type;
+                    document.getElementById('vd-fuel').textContent = d.fuel_type;
+                    document.getElementById('vd-color').textContent = d.color;
+                    document.getElementById('vd-year').textContent = d.manufacturing_year;
+                    document.getElementById('vd-engine').textContent = d.engine_capacity;
+                    document.getElementById('vd-emission').textContent = d.emission_norm;
+                    document.getElementById('vd-rto').textContent = d.rto_code + ' (' + d.state_code + ')';
+                    document.getElementById('vd-regdate').textContent = d.registration_date;
+
+                    const rcBadge = document.getElementById('vd-rc-status');
+                    rcBadge.textContent = d.rc_status;
+                    rcBadge.className = 'badge fs-6 bg-' + (d.rc_status === 'Valid' ? 'success' : 'danger');
+
+                    const docs = [
+                        {name: 'Fitness/Registration', issued: d.fitness_issuing_date, expiry: d.fitness_expiry, status: d.status_report.reg_expiry},
+                        {name: 'Insurance (' + d.insurer + ')', issued: d.insurance_issuing_date, expiry: d.insurance_expiry, status: d.status_report.insurance_expiry},
+                        {name: 'PUC Certificate', issued: d.puc_issuing_date, expiry: d.puc_expiry, status: d.status_report.puc_expiry}
+                    ];
+                    let html = '';
+                    docs.forEach(doc => {
+                        const isExp = doc.status === 'Expired';
+                        html += '<tr class="' + (isExp ? 'table-danger' : '') + '"><td class="fw-bold">' + doc.name + '</td><td>' + doc.issued + '</td><td>' + doc.expiry + '</td><td><span class="badge bg-' + (isExp ? 'danger' : 'success') + ' rounded-pill">' + doc.status + '</span></td></tr>';
+                    });
+                    document.getElementById('v-tbody').innerHTML = html;
+
+                    if (d.violations && d.violations.length > 0) {
+                        let vhtml = '';
+                        d.violations.forEach(v => { vhtml += '<li class="text-danger fw-bold">' + v + '</li>'; });
+                        document.getElementById('v-violations').innerHTML = vhtml;
+                        document.getElementById('v-total-fine').textContent = '\u20B9' + d.total_fine.toLocaleString('en-IN');
+                        document.getElementById('gen-challan-link').href = '/generate_challan?plate=' + encodeURIComponent(d.plate_number) + '&violation=' + encodeURIComponent(d.violations.join(', ')) + '&amount=' + d.total_fine;
+                        document.getElementById('violation-alert').classList.remove('d-none');
+                        document.getElementById('all-clear-alert').classList.add('d-none');
+                    } else {
+                        document.getElementById('violation-alert').classList.add('d-none');
+                        document.getElementById('all-clear-alert').classList.remove('d-none');
+                    }
+                    document.getElementById('v-results').classList.remove('d-none');
+                } else {
+                    document.getElementById('v-not-found').classList.remove('d-none');
+                }
+            })
+            .catch(err => { document.getElementById('v-loader').classList.add('d-none'); alert('Error: ' + err.message); });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const plate = document.getElementById('v-plate').value.trim();
+        if (plate) checkDocs();
+    });
+</script>
+{% endblock %}

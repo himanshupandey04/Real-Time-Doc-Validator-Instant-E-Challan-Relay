@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800 fw-bold">Violation Heatmap</h1>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<div class="card card-custom shadow-lg">
+    <div class="card-body p-0">
+        <div id="map" style="height: 600px; width: 100%;"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Map centered on Mumbai
+        var map = L.map('map').setView([19.0760, 72.8777], 12);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Generate Random Markers
+        var violationTypes = ['Speeding', 'No Helmet', 'Signal Jump', 'Wrong Side'];
+
+        for (var i = 0; i < 30; i++) {
+            // Random offset from center (approx 10km radius)
+            var lat = 19.0760 + (Math.random() - 0.5) * 0.1;
+            var lng = 72.8777 + (Math.random() - 0.5) * 0.1;
+
+            var type = violationTypes[Math.floor(Math.random() * violationTypes.length)];
+            var plate = "MH" + Math.floor(10 + Math.random() * 40) + "AB" + Math.floor(1000 + Math.random() * 9000);
+
+            var marker = L.marker([lat, lng]).addTo(map);
+
+            var popupContent = `
+                <div class="text-center">
+                    <h6 class="fw-bold text-danger mb-1">${type}</h6>
+                    <p class="mb-0 text-muted small">${plate}</p>
+                    <p class="mb-0 text-primary small">Today, ${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60)}</p>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+        }
+    });
+</script>
+{% endblock %}

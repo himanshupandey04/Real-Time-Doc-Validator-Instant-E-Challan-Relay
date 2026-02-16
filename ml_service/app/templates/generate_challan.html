@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800 fw-bold">Issue E-Challan</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card card-custom">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Violation Details</h6>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('generate_challan') }}" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Vehicle Number</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control text-uppercase" name="plate_number"
+                                    id="plateInput" required placeholder="Ex: MH12AB1234"
+                                    value="{{ prefill.plate }}">
+                                <button class="btn btn-outline-secondary" type="button" onclick="fetchVehicle()">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div id="veh-feedback" class="small mt-1"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Vehicle Type</label>
+                            <input type="text" class="form-control" id="vehType" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Violation Type</label>
+                        <select class="form-select" name="violation" id="violationSelect">
+                            <option value="Expired Insurance" {{ 'selected' if 'Insurance' in prefill.violation }}>Expired Insurance</option>
+                            <option value="Expired PUC" {{ 'selected' if 'PUC' in prefill.violation }}>Expired PUC</option>
+                            <option value="Expired Registration" {{ 'selected' if 'Registration' in prefill.violation or 'Fitness' in prefill.violation }}>Expired Registration/Fitness</option>
+                            <option value="Speeding">Over Speeding</option>
+                            <option value="No Helmet">No Helmet</option>
+                            <option value="No Seatbelt">No Seatbelt</option>
+                            <option value="Signal Jump">Signal Jump</option>
+                            <option value="{{ prefill.violation }}" {{ 'selected' if prefill.violation and ',' in prefill.violation }}>{{ prefill.violation if prefill.violation and ',' in prefill.violation else '' }}</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Fine Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" name="amount" id="fineAmount"
+                                value="{{ prefill.amount or 500 }}">
+                        </div>
+                        <small class="text-muted">Auto-calculated based on violations.</small>
+                    </div>
+
+                    <input type="hidden" name="proof_image" value="{{ prefill.proof_image }}">
+
+                    <hr>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-danger btn-lg shadow-sm">
+                            <i class="fas fa-paper-plane me-2"></i> Issue Challan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card card-custom bg-gradient-info text-white">
+            <div class="card-body">
+                <h5 class="card-title fw-bold"><i class="fas fa-info-circle me-2"></i> Owner Info</h5>
+                <p class="card-text opacity-75">Fetch vehicle details to see owner information here.</p>
+                <div id="owner-info" class="d-none">
+                    <hr class="bg-white">
+                    <p><strong>Name:</strong> <span id="o-name"></span></p>
+                    <p><strong>Vehicle:</strong> <span id="o-vehicle"></span></p>
+                    <hr class="bg-white">
+                    <div id="violation-alert" class="d-none bg-danger text-white p-2 rounded">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Violations Detected:</strong>
+                        <ul id="v-list" class="mb-0 ps-3"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const FINE_MAP = {
+        'Speeding': 2000, 'No Helmet': 1000, 'No Seatbelt': 1000,
+        'Signal Jump': 1000, 'Expired Insurance': 2000,
+        'Expired PUC': 1000, 'Expired Registration': 5000
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const vSelect = document.getElementById('violationSelect');
+        if (vSelect) {
+            vSelect.addEventListener('change', function() {
+                if (FINE_MAP[this.value]) document.getElementById('fineAmount').value = FINE_MAP[this.value];
+            });
+        }
+        // Auto-fetch if prefilled
+        const plate = document.getElementById('plateInput').value.trim();
+        if (plate) fetchVehicle();
+    });
+
+    function fetchVehicle() {
+        const p = document.getElementById('plateInput').value.trim();
+        if (!p) return;
+
+        fetch('/api/vehicle/' + encodeURIComponent(p))
+            .then(r => r.json())
+            .then(res => {
+                const feedback = document.getElementById('veh-feedback');
+                const ownerInfo = document.getElementById('owner-info');
+
+                if (res.found) {
+                    feedback.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Found in Database</span>';
+                    document.getElementById('vehType').value = res.data.vehicle_type;
+                    ownerInfo.classList.remove('d-none');
+                    document.getElementById('o-name').innerText = res.data.owner_name;
+                    document.getElementById('o-vehicle').innerText = res.data.make + ' ' + res.data.model;
+
+                    if (res.data.violations && res.data.violations.length > 0) {
+                        document.getElementById('violation-alert').classList.remove('d-none');
+                        const vList = document.getElementById('v-list');
+                        vList.innerHTML = '';
+                        res.data.violations.forEach(v => {
+                            const li = document.createElement('li');
+                            li.innerText = v;
+                            vList.appendChild(li);
+                        });
+                        if (res.data.total_fine) document.getElementById('fineAmount').value = res.data.total_fine;
+                    } else {
+                        document.getElementById('violation-alert').classList.add('d-none');
+                        feedback.innerHTML += ' <span class="badge bg-success">Documents Valid</span>';
+                    }
+                } else {
+                    feedback.innerHTML = '<span class="text-danger">Not Found in Database</span>';
+                }
+            });
+    }
+</script>
+{% endblock %}

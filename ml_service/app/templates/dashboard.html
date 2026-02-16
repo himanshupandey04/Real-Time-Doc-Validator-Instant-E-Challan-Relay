@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800 fw-bold">Dashboard</h1>
+    <a href="{{ url_for('generate_report') }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
+            class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-4 mb-4">
+    <!-- Total Violations -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats h-100 py-2 border-left-primary">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Violations</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-block bg-gradient-primary">
+                            <i class="fas fa-car fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats h-100 py-2 border-left-success">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Revenue</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.revenue | currency }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-block bg-gradient-success">
+                            <i class="fas fa-indian-rupee-sign fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Required (Pending) -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats h-100 py-2 border-left-warning">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Actions</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pending }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-block bg-gradient-warning">
+                            <i class="fas fa-exclamation-triangle fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Count -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats h-100 py-2 border-left-info">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Today's Cases</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.today }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-block bg-gradient-info">
+                            <i class="fas fa-calendar-day fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-xl-8 col-lg-7">
+        <div class="card card-custom mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Violation Trends (Last 7 Days)</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-area" style="height: 300px;">
+                    <canvas id="myAreaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-5">
+        <div class="card card-custom mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Violation Types</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2" style="height: 300px;">
+                    <canvas id="myPieChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Buttons Row -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-2">
+        <a href="{{ url_for('scan_vehicle') }}" class="btn btn-primary w-100 py-4 shadow-sm fw-bold">
+            <i class="fas fa-camera fa-2x mb-2 d-block"></i> Scan New Vehicle
+        </a>
+    </div>
+    <div class="col-md-4 mb-2">
+        <a href="{{ url_for('live_monitor') }}" class="btn btn-info w-100 py-4 shadow-sm fw-bold text-white">
+            <i class="fas fa-video fa-2x mb-2 d-block"></i> Live Monitor
+        </a>
+    </div>
+    <div class="col-md-4 mb-2">
+        <a href="{{ url_for('generate_challan') }}" class="btn btn-danger w-100 py-4 shadow-sm fw-bold">
+            <i class="fas fa-file-signature fa-2x mb-2 d-block"></i> Manual Challan
+        </a>
+    </div>
+</div>
+
+<!-- Table Row -->
+<div class="card card-custom mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Recent Violations</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Challan ID</th>
+                        <th>Plate Number</th>
+                        <th>Violation</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in recent_challans %}
+                    <tr>
+                        <td>{{ c.challan_id }}</td>
+                        <td class="font-weight-bold">{{ c.plate_number }}</td>
+                        <td>{{ c.violation_type }}</td>
+                        <td>{{ c.fine_amount | currency }}</td>
+                        <td>
+                            {% if c.status == 'Paid' %}
+                            <span class="badge bg-success">Paid</span>
+                            {% elif c.status == 'Pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% else %}
+                            <span class="badge bg-danger">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ c.issue_timestamp }}</td>
+                        <td><a href="{{ url_for('challan_details', id=c.id) }}"
+                                class="btn btn-outline-primary btn-sm rounded-pill">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Set new default font family and font color to mimic Bootstrap's default styling
+    Chart.defaults.font.family = 'Poppins';
+    Chart.defaults.color = '#858796';
+
+    // Area Chart - Trends
+    var ctx = document.getElementById("myAreaChart");
+    var myLineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ charts.line_labels | tojson }},
+    datasets: [{
+        label: "Violations",
+        lineTension: 0.3,
+        backgroundColor: "rgba(78, 115, 223, 0.05)",
+        borderColor: "rgba(78, 115, 223, 1)",
+        pointRadius: 3,
+        pointBackgroundColor: "rgba(78, 115, 223, 1)",
+        pointBorderColor: "rgba(78, 115, 223, 1)",
+        pointHoverRadius: 3,
+        pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+        pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+        pointHitRadius: 10,
+        pointBorderWidth: 2,
+        data: {{ charts.line_data | tojson }},
+        }],
+      },
+    options: {
+        maintainAspectRatio: false,
+            plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+    });
+
+    // Pie Chart
+    var ctxPie = document.getElementById("myPieChart");
+    var myPieChart = new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: {{ charts.pie_labels | tojson }},
+    datasets: [{
+        data: {{ charts.pie_data | tojson }},
+        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+        hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf'],
+        hoverBorderColor: "rgba(234, 236, 244, 1)",
+        }],
+      },
+    options: {
+        maintainAspectRatio: false,
+            cutout: '70%',
+                plugins: {
+            legend: { position: 'bottom' }
+        }
+    },
+    });
+</script>
+{% endblock %}

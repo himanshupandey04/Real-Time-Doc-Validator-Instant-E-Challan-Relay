@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800 fw-bold"><i class="fas fa-camera me-2"></i>Scan & Detect Vehicle</h1>
+</div>
+
+<div class="row">
+    <!-- Left: Upload & Detection -->
+    <div class="col-lg-7">
+        <div class="card card-custom mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Upload Vehicle Image</h6>
+            </div>
+            <div class="card-body">
+                <!-- Upload Zone -->
+                <div class="text-center py-4 bg-light rounded-3 mb-3" id="drop-zone"
+                    style="border: 2px dashed #c5cae9; cursor: pointer;" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                    <p class="mb-1 fw-bold text-gray-700">Drag & drop vehicle image here</p>
+                    <p class="small text-muted mb-2">or click to browse (JPG, PNG)</p>
+                    <input type="file" id="fileInput" class="d-none" accept="image/*">
+                </div>
+
+                <!-- Preview -->
+                <div id="preview-area" class="d-none mb-3">
+                    <div class="position-relative">
+                        <img id="preview-img" src="" class="img-fluid rounded border w-100" style="max-height: 400px; object-fit: contain;">
+                        <button class="btn btn-sm btn-dark position-absolute top-0 end-0 m-2" onclick="resetScan()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scan Button -->
+                <div class="text-center">
+                    <button class="btn btn-primary btn-lg shadow-sm fw-bold" id="scan-btn" onclick="scanImage()" disabled>
+                        <i class="fas fa-search me-2"></i> Detect Number Plate
+                    </button>
+                </div>
+
+                <!-- Loading -->
+                <div id="loader" class="text-center d-none py-4">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted fw-bold">Running YOLO Detection + OCR...</p>
+                </div>
+
+                <!-- Error -->
+                <div id="error-area" class="d-none mt-3">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <span id="error-msg"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processed Image -->
+        <div id="processed-card" class="card card-custom mb-4 d-none">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-check-circle me-2"></i>Detection Result</h6>
+            </div>
+            <div class="card-body text-center">
+                <img id="processed-img" src="" class="img-fluid rounded border" style="max-height: 400px;">
+                <div class="mt-2">
+                    <span class="badge bg-info" id="confidence-badge"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Detection Result & Vehicle Info -->
+    <div class="col-lg-5">
+        <!-- Detected Plate -->
+        <div id="plate-result" class="card card-custom mb-4 d-none border-success" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body text-center py-4">
+                <div class="small text-uppercase fw-bold text-success mb-1">Detected Number Plate</div>
+                <h1 class="display-5 fw-bold text-dark mb-0 font-monospace" id="detected-plate">--</h1>
+                <img id="cropped-plate-img" src="" class="img-fluid mt-2 rounded border d-none" style="max-height: 80px;">
+            </div>
+        </div>
+
+        <!-- Vehicle Details (if found in dataset) -->
+        <div id="vehicle-info-card" class="card card-custom mb-4 d-none">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-car me-2"></i>Vehicle Information</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><td class="fw-bold text-muted">Owner</td><td id="vi-owner" class="fw-bold"></td></tr>
+                    <tr><td class="fw-bold text-muted">Vehicle</td><td id="vi-vehicle"></td></tr>
+                    <tr><td class="fw-bold text-muted">Fuel Type</td><td id="vi-fuel"></td></tr>
+                    <tr><td class="fw-bold text-muted">Color</td><td id="vi-color"></td></tr>
+                    <tr><td class="fw-bold text-muted">RTO</td><td id="vi-rto"></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Document Status -->
+        <div id="doc-status-card" class="card card-custom mb-4 d-none">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-file-alt me-2"></i>Document Verification</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr><th>Document</th><th>Expiry</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="doc-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Violations & Challan -->
+        <div id="violation-card" class="card mb-4 d-none border-danger" style="border-left: 4px solid #e74a3b;">
+            <div class="card-body">
+                <h5 class="fw-bold text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Violations Detected</h5>
+                <ul id="violation-list" class="mb-3"></ul>
+                <div class="d-flex align-items-center justify-content-between bg-light p-3 rounded mb-3">
+                    <span class="fw-bold text-muted">Total Fine:</span>
+                    <span class="h4 fw-bold text-danger mb-0" id="total-fine"></span>
+                </div>
+                <button class="btn btn-danger w-100 btn-lg fw-bold shadow" id="gen-challan-btn" onclick="generateAutoChallan()">
+                    <i class="fas fa-file-invoice-dollar me-2"></i> Generate E-Challan
+                </button>
+            </div>
+        </div>
+
+        <!-- All Clear -->
+        <div id="all-clear-card" class="card mb-4 d-none border-success" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5 class="fw-bold text-success">All Documents Valid</h5>
+                <p class="text-muted mb-0">No violations found for this vehicle.</p>
+            </div>
+        </div>
+
+        <!-- Not Found in Dataset -->
+        <div id="not-found-card" class="card mb-4 d-none border-warning" style="border-left: 4px solid #f6c23e;">
+            <div class="card-body">
+                <h5 class="fw-bold text-warning"><i class="fas fa-question-circle me-2"></i>Vehicle Not in Database</h5>
+                <p class="text-muted mb-3">Plate detected but not found in our RTO dataset.</p>
+                <a id="manual-challan-link" href="#" class="btn btn-outline-warning fw-bold">
+                    <i class="fas fa-edit me-2"></i> Manual Challan
+                </a>
+                <a id="verify-link" href="#" class="btn btn-outline-primary fw-bold ms-2">
+                    <i class="fas fa-search me-2"></i> Verify Docs
+                </a>
+            </div>
+        </div>
+
+        <!-- Challan Generated Success -->
+        <div id="challan-success" class="card mb-4 d-none border-success" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5 class="fw-bold text-success">E-Challan Generated!</h5>
+                <p class="mb-1">Challan ID: <strong id="gen-challan-id"></strong></p>
+                <p class="mb-3">Owner: <strong id="gen-owner"></strong></p>
+                <a id="view-challan-link" href="#" class="btn btn-success fw-bold">
+                    <i class="fas fa-eye me-2"></i> View Challan Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedFile = null;
+    let currentPlate = null;
+    let currentProofImage = null;
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            selectedFile = e.target.files[0];
+            showPreview(selectedFile);
+        }
+    });
+
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#4e73df'; });
+    dropZone.addEventListener('dragleave', e => { dropZone.style.borderColor = '#c5cae9'; });
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#c5cae9';
+        if (e.dataTransfer.files.length > 0) {
+            selectedFile = e.dataTransfer.files[0];
+            document.getElementById('fileInput').files = e.dataTransfer.files;
+            showPreview(selectedFile);
+        }
+    });
+
+    function showPreview(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-img').src = e.target.result;
+            document.getElementById('preview-area').classList.remove('d-none');
+            document.getElementById('drop-zone').classList.add('d-none');
+            document.getElementById('scan-btn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+        hideAllResults();
+    }
+
+    function resetScan() {
+        selectedFile = null;
+        currentPlate = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('preview-area').classList.add('d-none');
+        document.getElementById('drop-zone').classList.remove('d-none');
+        document.getElementById('scan-btn').disabled = true;
+        hideAllResults();
+    }
+
+    function hideAllResults() {
+        ['plate-result', 'vehicle-info-card', 'doc-status-card', 'violation-card',
+         'all-clear-card', 'not-found-card', 'processed-card', 'error-area', 'challan-success'].forEach(id => {
+            document.getElementById(id).classList.add('d-none');
+        });
+    }
+
+    function scanImage() {
+        if (!selectedFile) return;
+        hideAllResults();
+        document.getElementById('scan-btn').disabled = true;
+        document.getElementById('loader').classList.remove('d-none');
+
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+
+        fetch('/scan', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                document.getElementById('loader').classList.add('d-none');
+                document.getElementById('scan-btn').disabled = false;
+
+                if (res.success) {
+                    currentPlate = res.plate;
+                    currentProofImage = res.processed_image || '';
+
+                    document.getElementById('detected-plate').textContent = res.plate;
+                    document.getElementById('plate-result').classList.remove('d-none');
+
+                    if (res.processed_image) {
+                        document.getElementById('processed-img').src = res.processed_image;
+                        document.getElementById('confidence-badge').textContent = 'Confidence: ' + res.confidence + '%';
+                        document.getElementById('processed-card').classList.remove('d-none');
+                    }
+                    if (res.cropped_plate) {
+                        document.getElementById('cropped-plate-img').src = res.cropped_plate;
+                        document.getElementById('cropped-plate-img').classList.remove('d-none');
+                    }
+
+                    if (res.vehicle_found && res.vehicle_data) {
+                        showVehicleData(res.vehicle_data);
+                    } else {
+                        document.getElementById('not-found-card').classList.remove('d-none');
+                        document.getElementById('manual-challan-link').href = '/generate_challan?plate=' + encodeURIComponent(res.plate);
+                        document.getElementById('verify-link').href = '/verify?plate=' + encodeURIComponent(res.plate);
+                    }
+                } else {
+                    document.getElementById('error-msg').textContent = res.error || 'Detection failed';
+                    document.getElementById('error-area').classList.remove('d-none');
+                    if (res.processed_image) {
+                        document.getElementById('processed-img').src = res.processed_image;
+                        document.getElementById('processed-card').classList.remove('d-none');
+                    }
+                }
+            })
+            .catch(err => {
+                document.getElementById('loader').classList.add('d-none');
+                document.getElementById('scan-btn').disabled = false;
+                document.getElementById('error-msg').textContent = 'Network error: ' + err.message;
+                document.getElementById('error-area').classList.remove('d-none');
+            });
+    }
+
+    function showVehicleData(data) {
+        document.getElementById('vi-owner').textContent = data.owner_name;
+        document.getElementById('vi-vehicle').textContent = data.make + ' ' + data.model + ' (' + data.vehicle_type + ')';
+        document.getElementById('vi-fuel').textContent = data.fuel_type;
+        document.getElementById('vi-color').textContent = data.color;
+        document.getElementById('vi-rto').textContent = data.rto_code + ' - ' + data.state_code;
+        document.getElementById('vehicle-info-card').classList.remove('d-none');
+
+        const docs = [
+            {name: 'Registration/Fitness', expiry: data.fitness_expiry, status: data.status_report.reg_expiry},
+            {name: 'Insurance', expiry: data.insurance_expiry, status: data.status_report.insurance_expiry},
+            {name: 'PUC Certificate', expiry: data.puc_expiry, status: data.status_report.puc_expiry}
+        ];
+        let html = '';
+        docs.forEach(doc => {
+            const isExp = doc.status === 'Expired';
+            html += '<tr><td class="fw-bold">' + doc.name + '</td><td>' + doc.expiry +
+                '</td><td><span class="badge bg-' + (isExp ? 'danger' : 'success') +
+                ' rounded-pill">' + doc.status + '</span></td></tr>';
+        });
+        document.getElementById('doc-tbody').innerHTML = html;
+        document.getElementById('doc-status-card').classList.remove('d-none');
+
+        if (data.violations && data.violations.length > 0) {
+            let vhtml = '';
+            data.violations.forEach(v => {
+                vhtml += '<li class="text-danger fw-bold"><i class="fas fa-times-circle me-2"></i>' + v + '</li>';
+            });
+            document.getElementById('violation-list').innerHTML = vhtml;
+            document.getElementById('total-fine').textContent = '\u20B9' + data.total_fine.toLocaleString('en-IN');
+            document.getElementById('violation-card').classList.remove('d-none');
+        } else {
+            document.getElementById('all-clear-card').classList.remove('d-none');
+        }
+    }
+
+    function generateAutoChallan() {
+        if (!currentPlate) return;
+        const btn = document.getElementById('gen-challan-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+
+        fetch('/api/auto_challan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plate: currentPlate, proof_image: currentProofImage })
+        })
+        .then(r => r.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar me-2"></i> Generate E-Challan';
+            if (res.success) {
+                document.getElementById('violation-card').classList.add('d-none');
+                document.getElementById('gen-challan-id').textContent = res.challan_id;
+                document.getElementById('gen-owner').textContent = res.owner_name;
+                document.getElementById('view-challan-link').href = res.detail_url;
+                document.getElementById('challan-success').classList.remove('d-none');
+            } else {
+                alert('Error: ' + res.error);
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar me-2"></i> Generate E-Challan';
+            alert('Network error: ' + err.message);
+        });
+    }
+</script>
+{% endblock %}

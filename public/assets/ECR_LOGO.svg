@@ -1,0 +1,58 @@
+<svg width="500" height="150" viewBox="0 0 500 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- Metallic Gradient -->
+        <linearGradient id="silver-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E0E0E0"/>
+            <stop offset="20%" stop-color="#FAFAFA"/>
+            <stop offset="45%" stop-color="#B0B0B0"/>
+            <stop offset="50%" stop-color="#909090"/>
+            <stop offset="55%" stop-color="#B0B0B0"/>
+            <stop offset="80%" stop-color="#FAFAFA"/>
+            <stop offset="100%" stop-color="#C0C0C0"/>
+        </linearGradient>
+        
+        <!-- Text Gradient -->
+        <linearGradient id="text-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="49%" stop-color="#D0D0D0"/>
+            <stop offset="50%" stop-color="#A0A0A0"/>
+            <stop offset="100%" stop-color="#C0C0C0"/>
+        </linearGradient>
+
+        <!-- Drop Shadow -->
+        <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+            <feOffset dx="2" dy="2" result="offsetblur"/>
+            <feComponentTransfer>
+                <feFuncA type="linear" slope="0.5"/>
+            </feComponentTransfer>
+            <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Group with Shadow Filter -->
+    <g filter="url(#dropShadow)">
+        
+        <!-- DOCUMENT ICON -->
+        <!-- Main body stroke -->
+        <path d="M 40 20 L 90 20 L 110 40 L 110 120 A 10 10 0 0 1 100 130 L 40 130 A 10 10 0 0 1 30 120 L 30 30 A 10 10 0 0 1 40 20" 
+              stroke="url(#silver-gradient)" stroke-width="8" fill="none" stroke-linejoin="round"/>
+        
+        <!-- Folded Corner -->
+        <path d="M 90 20 L 90 40 L 110 40" 
+              stroke="url(#silver-gradient)" stroke-width="8" fill="none" stroke-linejoin="round"/>
+
+        <!-- CHECKMARK -->
+        <!-- Thick checkmark emerging from document -->
+        <path d="M 50 80 L 70 100 L 120 50" 
+              stroke="url(#silver-gradient)" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        
+        <!-- TEXT -->
+        <text x="140" y="95" font-family="'Arial', 'Helvetica', sans-serif" font-weight="bold" font-size="60" fill="url(#text-gradient)" letter-spacing="1">
+            RTDV • ECR
+        </text>
+    </g>
+</svg>

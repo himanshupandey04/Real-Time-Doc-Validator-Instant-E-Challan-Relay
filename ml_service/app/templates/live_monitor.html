@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800 fw-bold"><i class="fas fa-video me-2"></i>Live Webcam Scan</h1>
+    <div>
+        <span id="status-badge" class="badge bg-secondary fs-6"><i class="fas fa-circle fa-xs me-1"></i> Offline</span>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left: Webcam Feed -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 overflow-hidden mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+                <span class="fw-bold"><i class="fas fa-camera me-2"></i> Webcam Feed</span>
+                <span class="small text-white-50" id="fps-counter"></span>
+            </div>
+            <div class="card-body p-0 position-relative bg-black text-center">
+                <!-- Placeholder before start -->
+                <div id="cam-placeholder" class="d-flex align-items-center justify-content-center text-secondary" style="height: 420px;">
+                    <div class="text-center">
+                        <i class="fas fa-video fa-4x mb-3 opacity-50"></i>
+                        <p class="fs-5 fw-bold">Click "Start Scanning" to begin</p>
+                        <p class="small text-muted">Your webcam will be used for real-time plate detection</p>
+                    </div>
+                </div>
+                <!-- Live feed -->
+                <img id="cam-feed" class="d-none w-100" style="max-height: 420px; object-fit: contain;" alt="Webcam Feed">
+
+                <!-- Overlay -->
+                <div id="cam-overlay" class="position-absolute bottom-0 start-0 w-100 p-3 d-none"
+                    style="background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);">
+                    <div class="d-flex align-items-end justify-content-between">
+                        <div>
+                            <span class="text-white-50 small">Last Detected Plate</span>
+                            <h2 class="text-warning fw-bold mb-0 font-monospace" id="overlay-plate">--</h2>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-white-50 small" id="overlay-time">--:--:--</span><br>
+                            <span class="badge bg-info" id="overlay-conf"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                <button class="btn btn-success btn-lg fw-bold shadow-sm" id="start-btn" onclick="startScan()">
+                    <i class="fas fa-play me-2"></i> Start Scanning
+                </button>
+                <button class="btn btn-danger btn-lg fw-bold shadow-sm d-none" id="stop-btn" onclick="stopScan()">
+                    <i class="fas fa-stop me-2"></i> Stop
+                </button>
+                <button class="btn btn-outline-primary fw-bold" id="capture-btn" onclick="captureAndLookup()" disabled>
+                    <i class="fas fa-crosshairs me-2"></i> Capture & Lookup
+                </button>
+            </div>
+        </div>
+
+        <!-- Cropped Plate -->
+        <div id="crop-card" class="card shadow-sm mb-4 d-none">
+            <div class="card-header py-2">
+                <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-expand me-2"></i>Cropped Plate</h6>
+            </div>
+            <div class="card-body text-center py-2">
+                <img id="crop-img" src="" class="img-fluid rounded border" style="max-height: 80px;">
+            </div>
+        </div>
+
+        <!-- Detection Log -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-list me-2"></i>Detection Log</h6>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">Clear</button>
+            </div>
+            <div class="card-body p-0">
+                <div id="detection-log" style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>Time</th><th>Plate</th><th>Confidence</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="log-tbody">
+                            <tr><td colspan="4" class="text-center text-muted py-3">No detections yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Vehicle Info Panel -->
+    <div class="col-lg-5">
+        <!-- Detected Plate Display -->
+        <div id="plate-card" class="card mb-4 border-success d-none" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body text-center py-4">
+                <div class="small text-uppercase fw-bold text-success mb-1">Detected Number Plate</div>
+                <h1 class="display-5 fw-bold text-dark mb-0 font-monospace" id="detected-plate">--</h1>
+            </div>
+        </div>
+
+        <!-- Vehicle Info -->
+        <div id="vehicle-card" class="card card-custom mb-4 d-none">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-car me-2"></i>Vehicle Information</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><td class="fw-bold text-muted">Owner</td><td id="vi-owner" class="fw-bold"></td></tr>
+                    <tr><td class="fw-bold text-muted">Vehicle</td><td id="vi-vehicle"></td></tr>
+                    <tr><td class="fw-bold text-muted">Fuel Type</td><td id="vi-fuel"></td></tr>
+                    <tr><td class="fw-bold text-muted">Color</td><td id="vi-color"></td></tr>
+                    <tr><td class="fw-bold text-muted">RTO</td><td id="vi-rto"></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Document Status -->
+        <div id="doc-card" class="card card-custom mb-4 d-none">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-file-alt me-2"></i>Document Status</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr><th>Document</th><th>Expiry</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="doc-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Violations -->
+        <div id="violation-card" class="card mb-4 d-none border-danger" style="border-left: 4px solid #e74a3b;">
+            <div class="card-body">
+                <h5 class="fw-bold text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Violations Detected</h5>
+                <ul id="violation-list" class="mb-3"></ul>
+                <div class="d-flex align-items-center justify-content-between bg-light p-3 rounded mb-3">
+                    <span class="fw-bold text-muted">Total Fine:</span>
+                    <span class="h4 fw-bold text-danger mb-0" id="total-fine"></span>
+                </div>
+                <button class="btn btn-danger w-100 btn-lg fw-bold shadow" id="challan-btn" onclick="generateChallan()">
+                    <i class="fas fa-file-invoice-dollar me-2"></i> Generate E-Challan
+                </button>
+            </div>
+        </div>
+
+        <!-- All Clear -->
+        <div id="clear-card" class="card mb-4 d-none border-success" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5 class="fw-bold text-success">All Documents Valid</h5>
+                <p class="text-muted mb-0">No violations found.</p>
+            </div>
+        </div>
+
+        <!-- Not Found -->
+        <div id="notfound-card" class="card mb-4 d-none border-warning" style="border-left: 4px solid #f6c23e;">
+            <div class="card-body">
+                <h5 class="fw-bold text-warning"><i class="fas fa-question-circle me-2"></i>Vehicle Not in Database</h5>
+                <p class="text-muted mb-3">Detected plate not found in RTO dataset.</p>
+                <a id="manual-link" href="#" class="btn btn-outline-warning fw-bold">
+                    <i class="fas fa-edit me-2"></i> Manual Challan
+                </a>
+            </div>
+        </div>
+
+        <!-- Challan Success -->
+        <div id="challan-success" class="card mb-4 d-none border-success" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5 class="fw-bold text-success">E-Challan Generated!</h5>
+                <p class="mb-1">Challan ID: <strong id="gen-challan-id"></strong></p>
+                <a id="view-challan-link" href="#" class="btn btn-success fw-bold mt-2">
+                    <i class="fas fa-eye me-2"></i> View Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let scanning = false;
+    let currentPlate = null;
+
+    const socket = io();
+
+    // Listen for real-time plate detections pushed from backend
+    socket.on('plate_detected', function(data) {
+        if (!scanning) return;
+
+        document.getElementById('overlay-plate').textContent = data.plate;
+        document.getElementById('overlay-time').textContent = data.timestamp;
+        document.getElementById('overlay-conf').textContent = 'Conf: ' + data.confidence + '%';
+
+        if (data.crop) {
+            document.getElementById('crop-img').src = data.crop + '?t=' + Date.now();
+            document.getElementById('crop-card').classList.remove('d-none');
+        }
+
+        addLogEntry(data.timestamp, data.plate, data.confidence);
+    });
+
+    function startScan() {
+        scanning = true;
+        document.getElementById('cam-placeholder').classList.add('d-none');
+        document.getElementById('cam-feed').classList.remove('d-none');
+        document.getElementById('cam-feed').src = '/video_feed?detect=1&t=' + Date.now();
+        document.getElementById('cam-overlay').classList.remove('d-none');
+        document.getElementById('start-btn').classList.add('d-none');
+        document.getElementById('stop-btn').classList.remove('d-none');
+        document.getElementById('capture-btn').disabled = false;
+        document.getElementById('status-badge').className = 'badge bg-success fs-6';
+        document.getElementById('status-badge').innerHTML = '<i class="fas fa-circle fa-xs me-1 blink"></i> Live Scanning';
+    }
+
+    function stopScan() {
+        scanning = false;
+        document.getElementById('cam-feed').src = '';
+        document.getElementById('cam-feed').classList.add('d-none');
+        document.getElementById('cam-placeholder').classList.remove('d-none');
+        document.getElementById('cam-overlay').classList.add('d-none');
+        document.getElementById('start-btn').classList.remove('d-none');
+        document.getElementById('stop-btn').classList.add('d-none');
+        document.getElementById('capture-btn').disabled = true;
+        document.getElementById('status-badge').className = 'badge bg-secondary fs-6';
+        document.getElementById('status-badge').innerHTML = '<i class="fas fa-circle fa-xs me-1"></i> Offline';
+    }
+
+    function captureAndLookup() {
+        fetch('/get_plate')
+            .then(r => r.json())
+            .then(res => {
+                const plate = res.text;
+                if (!plate || plate === '--') {
+                    alert('No plate detected yet. Point the camera at a number plate.');
+                    return;
+                }
+                currentPlate = plate;
+                lookupPlate(plate);
+            });
+    }
+
+    function lookupPlate(plate) {
+        hideResults();
+        currentPlate = plate;
+        document.getElementById('detected-plate').textContent = plate;
+        document.getElementById('plate-card').classList.remove('d-none');
+
+        fetch('/api/vehicle/' + encodeURIComponent(plate))
+            .then(r => r.json())
+            .then(res => {
+                if (res.found) {
+                    showVehicleData(res.data);
+                } else {
+                    document.getElementById('notfound-card').classList.remove('d-none');
+                    document.getElementById('manual-link').href = '/generate_challan?plate=' + encodeURIComponent(plate);
+                }
+            })
+            .catch(err => alert('Lookup error: ' + err.message));
+    }
+
+    function showVehicleData(d) {
+        document.getElementById('vi-owner').textContent = d.owner_name;
+        document.getElementById('vi-vehicle').textContent = d.make + ' ' + d.model + ' (' + d.vehicle_type + ')';
+        document.getElementById('vi-fuel').textContent = d.fuel_type;
+        document.getElementById('vi-color').textContent = d.color;
+        document.getElementById('vi-rto').textContent = d.rto_code + ' - ' + d.state_code;
+        document.getElementById('vehicle-card').classList.remove('d-none');
+
+        const docs = [
+            {name: 'Registration/Fitness', expiry: d.fitness_expiry, status: d.status_report.reg_expiry},
+            {name: 'Insurance', expiry: d.insurance_expiry, status: d.status_report.insurance_expiry},
+            {name: 'PUC Certificate', expiry: d.puc_expiry, status: d.status_report.puc_expiry}
+        ];
+        let html = '';
+        docs.forEach(doc => {
+            const isExp = doc.status === 'Expired';
+            html += '<tr class="' + (isExp ? 'table-danger' : '') + '"><td class="fw-bold">' + doc.name +
+                '</td><td>' + doc.expiry + '</td><td><span class="badge bg-' +
+                (isExp ? 'danger' : 'success') + ' rounded-pill">' + doc.status + '</span></td></tr>';
+        });
+        document.getElementById('doc-tbody').innerHTML = html;
+        document.getElementById('doc-card').classList.remove('d-none');
+
+        if (d.violations && d.violations.length > 0) {
+            let vhtml = '';
+            d.violations.forEach(v => {
+                vhtml += '<li class="text-danger fw-bold"><i class="fas fa-times-circle me-2"></i>' + v + '</li>';
+            });
+            document.getElementById('violation-list').innerHTML = vhtml;
+            document.getElementById('total-fine').textContent = '\u20B9' + d.total_fine.toLocaleString('en-IN');
+            document.getElementById('violation-card').classList.remove('d-none');
+        } else {
+            document.getElementById('clear-card').classList.remove('d-none');
+        }
+    }
+
+    function generateChallan() {
+        if (!currentPlate) return;
+        const btn = document.getElementById('challan-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+
+        fetch('/api/auto_challan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plate: currentPlate, proof_image: '' })
+        })
+        .then(r => r.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar me-2"></i> Generate E-Challan';
+            if (res.success) {
+                document.getElementById('violation-card').classList.add('d-none');
+                document.getElementById('gen-challan-id').textContent = res.challan_id;
+                document.getElementById('view-challan-link').href = res.detail_url;
+                document.getElementById('challan-success').classList.remove('d-none');
+            } else {
+                alert('Error: ' + res.error);
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar me-2"></i> Generate E-Challan';
+            alert('Error: ' + err.message);
+        });
+    }
+
+    function hideResults() {
+        ['plate-card', 'vehicle-card', 'doc-card', 'violation-card', 'clear-card', 'notfound-card', 'challan-success'].forEach(id => {
+            document.getElementById(id).classList.add('d-none');
+        });
+    }
+
+    function addLogEntry(time, plate, conf) {
+        const tbody = document.getElementById('log-tbody');
+        if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
+
+        const row = document.createElement('tr');
+        row.className = 'table-active';
+        row.innerHTML = '<td class="small">' + time + '</td>' +
+            '<td class="fw-bold font-monospace">' + plate + '</td>' +
+            '<td><span class="badge bg-info">' + conf + '%</span></td>' +
+            '<td><button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="lookupPlate(\'' + plate + '\')"><i class="fas fa-search"></i></button></td>';
+        tbody.insertBefore(row, tbody.firstChild);
+        setTimeout(() => row.classList.remove('table-active'), 2000);
+        while (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+    }
+
+    function clearLog() {
+        document.getElementById('log-tbody').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No detections yet</td></tr>';
+    }
+</script>
+
+<style>
+    .blink { animation: blink 1.5s ease-in-out infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+{% endblock %}
