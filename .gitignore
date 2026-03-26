@@ -43,3 +43,17 @@ Thumbs.db
 # Large Datasets (Keep the sample CSV if it's small, otherwise ignore)
 # ml_service/app/indian_vehicle_dataset.csv
 ml_service/app/indian_vehicle_dataset_non_ev.xlsx
+
+# YOLO & ML model weights (large binary — download separately)
+*.pt
+*.onnx
+*.weights
+
+# Presentation & Office binary files
+*.pptx
+*.ppt
+*.docx
+
+# Backup files
+*.bak
+*.backup
